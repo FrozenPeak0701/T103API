@@ -209,7 +209,7 @@ def receiveASDU5(ASDU: list[bytes]) -> dict:  # identification message
     COL = INFO[0]
     if dict1['VSQ'] != 0x81 or dict1['COT'] not in (3, 4, 5) or len(INFO) != 13 or dict1['INF'] not in (
             2, 3, 4) or COL not in (2, 3):
-        raise Exception("illegal ASDU8 format")
+        raise Exception("illegal ASDU5 format")
     ASCII = INFO[1:9].decode("utf8")
     VER = INFO[9:13].decode("utf8")
     dict2 = {'COL': COL, 'ASCII': ASCII, 'VER': VER}
