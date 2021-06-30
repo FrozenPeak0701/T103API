@@ -19,7 +19,7 @@ class smartPort:
         if received is not None:
             while True:
                 if self.m_serialport.inWaiting() > 0:
-                    #print(1)
+                    # print(1)
                     received += self.m_serialport.read(self.m_serialport.inWaiting())
                 else:
                     time.sleep(
@@ -35,4 +35,3 @@ class smartPort:
 
     def __del__(self):
         self.m_serialport.close()
-

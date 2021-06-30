@@ -2,7 +2,6 @@ import T103ASDU
 import serial, time, threading
 from functools import wraps
 
-
 '''def lockThemAll(lock):  # 用于统一加lock的装饰器
     def decorator(func):
         @wraps(func)
@@ -14,13 +13,21 @@ from functools import wraps
 
         return wrapper
 
-    return decorator''' # not realizable
+    return decorator'''  # not realizable
+def singleton(cls):    #单例模式装饰器
+    _instance = {}
+    def inner(*args,**kwargs):
+        if cls not in _instance:
+            _instance[cls] = cls(*args,**kwargs)
+        return _instance[cls]
+    return inner
 
-
+@singleton
 class T103API:
     def __init__(self, port="COM1", baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_EVEN,
                  stopbits=serial.STOPBITS_ONE, timeout=0.05, FCBORCU: bool = 1,
                  ADDR: int = 1, pollinterval: int = 1):  # 1: reset CU,0: resetFCB
+        self.port=port
         self.m_ASDU = T103ASDU.T103ASDU(port=port, baudrate=baudrate, bytesize=bytesize, parity=parity,
                                         stopbits=stopbits,
                                         timeout=timeout)
@@ -207,7 +214,6 @@ class T103API:
         self.lock.release()
 
 
-
 def demo():
     h = T103API(port='COM2', timeout=1, FCBORCU=1, ADDR=1)  # FCVORCUR: 1: reset CU, 0: reset FCB
 
@@ -276,3 +282,12 @@ def demo():
 if __name__ == "__main__":
     # p = T103API(port='COM2', timeout=0.1)
     demo()
+    '''h=T103API(port='COM2', timeout=0.1)
+    p=T103API(port='COM3', timeout=0.1)
+    print(h.FCB)
+    print(p.FCB)
+    h.FCB=not h.FCB
+    print(h.FCB)
+    print(p.FCB)'''
+
+
