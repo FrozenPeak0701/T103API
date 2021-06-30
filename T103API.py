@@ -14,20 +14,27 @@ from functools import wraps
         return wrapper
 
     return decorator'''  # not realizable
-def singleton(cls):    #单例模式装饰器
-    _instance = {}
-    def inner(*args,**kwargs):
-        if cls not in _instance:
-            _instance[cls] = cls(*args,**kwargs)
-        return _instance[cls]
+
+
+def singleton(cls):  # 对于每个Port的单例模式装饰器
+    _instance = []
+
+    def inner(*args, **kwargs):
+        for i in _instance:
+            if i.port == kwargs["port"]:
+                return i
+        _instance.append(cls(*args, **kwargs))
+        return _instance[-1]
+
     return inner
+
 
 @singleton
 class T103API:
     def __init__(self, port="COM1", baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_EVEN,
                  stopbits=serial.STOPBITS_ONE, timeout=0.05, FCBORCU: bool = 1,
                  ADDR: int = 1, pollinterval: int = 1):  # 1: reset CU,0: resetFCB
-        self.port=port
+        self.port = port
         self.m_ASDU = T103ASDU.T103ASDU(port=port, baudrate=baudrate, bytesize=bytesize, parity=parity,
                                         stopbits=stopbits,
                                         timeout=timeout)
@@ -282,12 +289,7 @@ def demo():
 if __name__ == "__main__":
     # p = T103API(port='COM2', timeout=0.1)
     demo()
-    '''h=T103API(port='COM2', timeout=0.1)
-    p=T103API(port='COM3', timeout=0.1)
-    print(h.FCB)
-    print(p.FCB)
-    h.FCB=not h.FCB
-    print(h.FCB)
-    print(p.FCB)'''
-
-
+    '''h = T103API(port='COM2', timeout=0.1)
+    p = T103API(port='COM1', timeout=0.1)
+    print(h)
+    print(p)'''
