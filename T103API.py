@@ -63,7 +63,7 @@ class T103API:
         raise Exception("receive time out")
 
     def startCyclicPoll(self, interval, ADDR):
-        thread1 = threading.Thread(target=self.CyclicPoll, kwargs={"interval": interval, "ADDR": ADDR},daemon=True)
+        thread1 = threading.Thread(target=self.CyclicPoll, kwargs={"interval": interval, "ADDR": ADDR}, daemon=True)
         thread1.start()
 
     def CyclicPoll(self, interval, ADDR):
@@ -297,4 +297,3 @@ if __name__ == "__main__":
     p = T103API(port='COM1', timeout=0.1)
     print(h)
     print(p)'''
-
