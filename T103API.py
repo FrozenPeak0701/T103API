@@ -63,7 +63,7 @@ class T103API:
         raise Exception("receive time out")
 
     def startCyclicPoll(self, interval, ADDR):
-        thread1 = threading.Thread(target=self.CyclicPoll, kwargs={"interval": interval, "ADDR": ADDR})
+        thread1 = threading.Thread(target=self.CyclicPoll, kwargs={"interval": interval, "ADDR": ADDR},daemon=True)
         thread1.start()
 
     def CyclicPoll(self, interval, ADDR):
@@ -177,7 +177,7 @@ class T103API:
 
     def resetFCB(self, ADDR):  # reset frame count bit复位帧计数位
         self.lock.acquire()
-        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=0, FCV=0, fcode=0, ADDR=ADDR)
+        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=0, FCV=0, fcode=7, ADDR=ADDR)
         dict1 = T103ASDU.interpret(received)
         if dict1['fcode'] != 0:
             raise Exception('protection equipment did not confirm')
@@ -188,7 +188,7 @@ class T103API:
 
     def resetCU(self, ADDR):  # reset communication unit复位通信单元
         self.lock.acquire()
-        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=0, FCV=0, fcode=7, ADDR=ADDR)
+        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=0, FCV=0, fcode=0, ADDR=ADDR)
         dict1 = T103ASDU.interpret(received)
         if dict1['fcode'] != 0:
             raise Exception('protection equipment did not confirm')
@@ -288,8 +288,13 @@ def demo():
 
 if __name__ == "__main__":
     # p = T103API(port='COM2', timeout=0.1)
-    demo()
+
+    try:
+        demo()
+    except Exception as  e:
+        print(e)
     '''h = T103API(port='COM2', timeout=0.1)
     p = T103API(port='COM1', timeout=0.1)
     print(h)
     print(p)'''
+

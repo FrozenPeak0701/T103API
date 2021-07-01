@@ -30,7 +30,7 @@ class smartPort:
 
         print("Received: ", received.hex(" "))  # this is temporary, or not...
         self.log.append("Received: " + received.hex(" "))
-        # if (self.m_serialport.inWaiting()>0):
+
         return received
 
     def __del__(self):
