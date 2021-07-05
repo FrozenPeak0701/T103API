@@ -40,6 +40,7 @@ class T103API:
                                         timeout=timeout)
         self.FCB = 0
         self.lock = threading.RLock()
+        self.stopevent = threading.Event()
         if int(FCBORCU):
             msg = self.resetCU(ADDR)
         else:
@@ -49,9 +50,10 @@ class T103API:
         self.startCyclicPoll(interval=pollinterval, ADDR=ADDR)
 
     def __del__(self):
-
+        self.stopevent.set()
+        self.thread1.join()
         del self.m_ASDU
-        del self.FCB
+
 
     def send3times(self, sendfunc, **args):  # all send commands should go through this function!!!
         for i in range(1, 4):
@@ -63,11 +65,15 @@ class T103API:
         raise Exception("receive time out")
 
     def startCyclicPoll(self, interval, ADDR):
-        thread1 = threading.Thread(target=self.CyclicPoll, kwargs={"interval": interval, "ADDR": ADDR}, daemon=True)
-        thread1.start()
+        self.thread1 = threading.Thread(target=self.CyclicPoll,
+                                        kwargs={"interval": interval, "ADDR": ADDR}, daemon=True)
+        self.thread1.start()
 
     def CyclicPoll(self, interval, ADDR):
         while True:
+            if self.stopevent.is_set():
+                self.stopevent.clear()
+                break
             self.lock.acquire()
             self.requestClass2Data(ADDR=ADDR)
             self.lock.release()
@@ -108,14 +114,20 @@ class T103API:
         self.lock.release()
         return dict1
 
-    def repeatRequestClass2Data(self, ADDR: int):  # 请求二级数据/遥测 (若需要，则继续请求一级数据)
+    def repeatRequestClass2Data(self, ADDR: int, requestc1ifneeded: bool = False,
+                                waitTime: float = 1):  # 请求二级数据/遥测 requestc1ifneeded为True时：若需要，则继续请求一级数据
         self.lock.acquire()
-        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=self.FCB, FCV=1, fcode=11, ADDR=ADDR)
-        dict1 = T103ASDU.interpret(received)
-        if dict1['ADDR'] != ADDR:
-            raise Exception("sent ADDR is not consistent with received ADDR")
-        receivebuffer = [dict1]
-        if dict1['ACD'] == 1:
+        receivebuffer = []
+        time.sleep(waitTime)
+        while True:
+            received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=self.FCB, FCV=1, fcode=11, ADDR=ADDR)
+            dict1 = T103ASDU.interpret(received)
+            if dict1['ADDR'] != ADDR:
+                raise Exception("sent ADDR is not consistent with received ADDR")
+            receivebuffer.append(dict1)
+            if dict1['fcode'] == 9:
+                break
+        if dict1['ACD'] == 1 and requestc1ifneeded:
             receivebuffer += self.repeatRequestClass1Data(ADDR)
         self.lock.release()
         return receivebuffer
@@ -291,6 +303,7 @@ if __name__ == "__main__":
 
     try:
         demo()
+
     except Exception as  e:
         print(e)
     '''h = T103API(port='COM2', timeout=0.1)

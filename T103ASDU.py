@@ -166,7 +166,7 @@ def receiveASDU3(ASDU: list[bytes]) -> dict:  # measurands 1
         raise Exception("illegal ASDU3/9 format")
     Measurements = []
     for i in range(0, VSQ):
-        data = INFO[1 + 2 * i] << 5 + INFO[2 * i] >> 3
+        data = (INFO[1 + 2 * i] << 5) + (INFO[2 * i] >> 3)
         if data >> 12 & 1 == 1:
             data = data - 2 ** 13
         OV = INFO[2 * i] & 1
