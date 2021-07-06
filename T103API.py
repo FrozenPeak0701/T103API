@@ -21,7 +21,7 @@ def singleton(cls):  # 对于每个Port的单例模式装饰器
 
     def inner(*args, **kwargs):
         for i in _instance:
-            if i.port == kwargs["port"]:
+            if i.port == args[0] or i.port == kwargs["port"]:
                 return i
         _instance.append(cls(*args, **kwargs))
         return _instance[-1]
@@ -53,7 +53,6 @@ class T103API:
         self.stopevent.set()
         self.thread1.join()
         del self.m_ASDU
-
 
     def send3times(self, sendfunc, **args):  # all send commands should go through this function!!!
         for i in range(1, 4):
@@ -114,8 +113,8 @@ class T103API:
         self.lock.release()
         return dict1
 
-    def repeatRequestClass2Data(self, ADDR: int, requestc1ifneeded: bool = False,
-                                waitTime: float = 1):  # 请求二级数据/遥测 requestc1ifneeded为True时：若需要，则继续请求一级数据
+    def repeatRequestClass2Data(self, ADDR: int, requestc1: bool = False,
+                                waitTime: float = 1):  # 请求二级数据/遥测 requestc1为True时：若需要，则继续请求一级数据
         self.lock.acquire()
         receivebuffer = []
         time.sleep(waitTime)
@@ -124,13 +123,23 @@ class T103API:
             dict1 = T103ASDU.interpret(received)
             if dict1['ADDR'] != ADDR:
                 raise Exception("sent ADDR is not consistent with received ADDR")
-            receivebuffer.append(dict1)
             if dict1['fcode'] == 9:
                 break
-        if dict1['ACD'] == 1 and requestc1ifneeded:
+            receivebuffer.append(dict1)
+        if dict1['ACD'] == 1 and requestc1:
             receivebuffer += self.repeatRequestClass1Data(ADDR)
         self.lock.release()
         return receivebuffer
+
+    def measurement(self, ADDR: int, requestc1: bool = False,
+                    waitTime: float = 2):  # 遥测快捷方式,返回一个以(FUN,INF）为key的字典，便于索引, value仍然为字典
+        receivebuffer = self.repeatRequestClass2Data(ADDR=ADDR, requestc1=requestc1, waitTime=waitTime)
+        dict1 = {}
+        for point in receivebuffer:
+            details = point.copy()
+            del details['FUN'], details['INF']
+            dict1[(point['FUN'], point['INF'])] = details
+        return dict1
 
     def generalCommand(self, ADDR: int, ASDUADDR: int, FUN: int, INF: int, DCO: int, RII=0, response=True):  # 遥控
         self.lock.acquire()
@@ -286,6 +295,10 @@ def demo():
         elif num == 10:
             list1 = h.requestLinkState(ADDR=1)
             print(list1)
+        elif num == 11:
+            dict1 = h.measurement(ADDR=1)
+            for key in dict1:
+                print(key, dict1[key])
         elif num == 20:
             list1 = h.generalCommand(ADDR=1, ASDUADDR=1, FUN=192, INF=19, DCO=2, RII=3)
             for i in list1:
