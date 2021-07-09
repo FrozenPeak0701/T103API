@@ -1,5 +1,6 @@
 import T103ASDU
 import serial, time, threading
+import serial.tools.list_ports
 from functools import wraps
 
 '''def lockThemAll(lock):  # 用于统一加lock的装饰器
@@ -243,10 +244,13 @@ class T103API:
 
 
 def demo():
-    h = T103API(port='COM2', timeout=1, FCBORCU=1, ADDR=1)  # FCVORCUR: 1: reset CU, 0: reset FCB
+    #find comport
+    portList = list(serial.tools.list_ports.comports())
+    if portList is not None:
+        comports = str(portList[0]).split('-')
 
-    #
-    #
+    h = T103API(port=comports[0], timeout=1, FCBORCU=1, ADDR=1)  # FCVORCUR: 1: reset CU, 0: reset FCB
+
     while True:
         print("\n")
         print("----------------------------------------------")
@@ -258,6 +262,7 @@ def demo():
         print("8.Reset Frame Count Bit")
         print("9.Reset Communication Unit")
         print("10.Request Link State")
+        print("11.Measurement")
         print("20.General Command")
         print("100.Print log to file")
 

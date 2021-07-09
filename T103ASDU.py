@@ -89,6 +89,9 @@ def interpret(raw: list[bytes]) -> dict:
     elif TYPE == 5:
         dict1.update(receiveASDU5(ASDU))
         return dict1
+    elif TYPE == 6:
+        dict1.update(receiveASDU6(ASDU))
+        return dict1
     elif TYPE == 8:
         dict1.update(receiveASDU8(ASDU))
         return dict1
@@ -218,8 +221,25 @@ def receiveASDU5(ASDU: list[bytes]) -> dict:  # identification message
 
 
 def receiveASDU6(ASDU: list[bytes]) -> dict:  # time synchronization
-    pass
+    dict1 = deformatASDU(ASDU)
+    INFO = dict1['INFO']
+    del dict1['INFO']
+    if dict1['VSQ'] != 0x81 or dict1['COT'] !=8 or len(INFO) != 7 or dict1['FUN']!=255 or dict1['INF']!=0:
+        raise Exception("illegal ASDU6 format")
 
+    SEC = (INFO[0] + INFO[1] * 256) / 1000
+    IV = INFO[2] >> 7
+    MIN = INFO[2] % 128
+    SU = INFO[3] >> 7
+    HOUR = INFO[3] % 128
+    WDAY=INFO[4]>>5
+    MDAY=INFO[4]%32
+    MONTH=INFO[5]%16
+    YEAR=INFO[6]%128
+
+    dict2 = {'SEC': SEC, 'IV': IV, 'MIN': MIN, 'SU': SU, 'HOUR': HOUR, 'WDAY':WDAY,'MDAY':MDAY,'MONTH':MONTH,'YEAR':YEAR}
+    dict1.update(dict2)
+    return dict1
 
 def receiveASDU8(ASDU: list[bytes]) -> dict:  # termination of general interrogation
     dict1 = deformatASDU(ASDU)
