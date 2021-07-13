@@ -35,3 +35,4 @@ class smartPort:
 
     def __del__(self):
         self.m_serialport.close()
+        # print("port closed")

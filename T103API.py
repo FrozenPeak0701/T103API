@@ -53,7 +53,10 @@ class T103API:
     def __del__(self):
         self.stopevent.set()
         self.thread1.join()
-        del self.m_ASDU
+        # del self.m_ASDU # seems to work without it, no idea why
+
+    def disconnect(self):
+        self.__del__()
 
     def send3times(self, sendfunc, **args):  # all send commands should go through this function!!!
         for i in range(1, 4):
