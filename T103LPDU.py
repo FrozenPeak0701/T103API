@@ -11,7 +11,7 @@ class T103LPDU:
                                             timeout=timeout)
 
     # def __del__(self):
-        # del self.m_serial # seems to work without it, no idea why
+    # del self.m_serial # seems to work without it, no idea why
 
     def enCODE(self, FCB: int, FCV: int, fcode: int) -> int:
         if FCB > 1:

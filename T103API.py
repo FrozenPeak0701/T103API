@@ -247,7 +247,7 @@ class T103API:
 
 
 def demo():
-    #find comport
+    # find comport
     portList = list(serial.tools.list_ports.comports())
     if portList is not None:
         comports = str(portList[0]).split('-')

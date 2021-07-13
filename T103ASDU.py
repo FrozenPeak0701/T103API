@@ -122,7 +122,7 @@ def receiveASDU1(ASDU: list[bytes]) -> dict:  # time-tagged message
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
-    if dict1['VSQ'] != 0x81 or len(INFO) != 6 or dict1['COT'] not in (1,7,9):
+    if dict1['VSQ'] != 0x81 or len(INFO) != 6 or dict1['COT'] not in (1, 7, 9):
         raise Exception("illegal ASDU1 format")
     DPI = INFO[0]
     SEC = (INFO[1] + INFO[2] * 256) / 1000
@@ -165,7 +165,7 @@ def receiveASDU3(ASDU: list[bytes]) -> dict:  # measurands 1
     INFO = dict1['INFO']
     del dict1['INFO']
     VSQ = dict1['VSQ']
-    if dict1['COT'] not in (2,7) or len(INFO) != 2 * VSQ:
+    if dict1['COT'] not in (2, 7) or len(INFO) != 2 * VSQ:
         raise Exception("illegal ASDU3/9 format")
     Measurements = []
     for i in range(0, VSQ):
@@ -184,7 +184,7 @@ def receiveASDU4(ASDU: list[bytes]) -> dict:  # time-tagged measurands with rela
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
-    if dict1['VSQ'] != 0x81 or dict1['COT'] not in (1,7,9) or len(INFO) != 12:
+    if dict1['VSQ'] != 0x81 or dict1['COT'] not in (1, 7, 9) or len(INFO) != 12:
         raise Exception("illegal ASDU4 format")
     # F = INFO[0] / (2 ** 23) + INFO[1] / (2 ** 15) + (INFO[2] % 128) / (2 ** 7)
     # S = INFO[3] >> 7
@@ -224,7 +224,7 @@ def receiveASDU6(ASDU: list[bytes]) -> dict:  # time synchronization
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
-    if dict1['VSQ'] != 0x81 or dict1['COT'] !=8 or len(INFO) != 7 or dict1['FUN']!=255 or dict1['INF']!=0:
+    if dict1['VSQ'] != 0x81 or dict1['COT'] != 8 or len(INFO) != 7 or dict1['FUN'] != 255 or dict1['INF'] != 0:
         raise Exception("illegal ASDU6 format")
 
     SEC = (INFO[0] + INFO[1] * 256) / 1000
@@ -232,14 +232,16 @@ def receiveASDU6(ASDU: list[bytes]) -> dict:  # time synchronization
     MIN = INFO[2] % 128
     SU = INFO[3] >> 7
     HOUR = INFO[3] % 128
-    WDAY=INFO[4]>>5
-    MDAY=INFO[4]%32
-    MONTH=INFO[5]%16
-    YEAR=INFO[6]%128
+    WDAY = INFO[4] >> 5
+    MDAY = INFO[4] % 32
+    MONTH = INFO[5] % 16
+    YEAR = INFO[6] % 128
 
-    dict2 = {'SEC': SEC, 'IV': IV, 'MIN': MIN, 'SU': SU, 'HOUR': HOUR, 'WDAY':WDAY,'MDAY':MDAY,'MONTH':MONTH,'YEAR':YEAR}
+    dict2 = {'SEC': SEC, 'IV': IV, 'MIN': MIN, 'SU': SU, 'HOUR': HOUR, 'WDAY': WDAY, 'MDAY': MDAY, 'MONTH': MONTH,
+             'YEAR': YEAR}
     dict1.update(dict2)
     return dict1
+
 
 def receiveASDU8(ASDU: list[bytes]) -> dict:  # termination of general interrogation
     dict1 = deformatASDU(ASDU)
