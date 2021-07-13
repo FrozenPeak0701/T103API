@@ -34,21 +34,24 @@ def singleton(cls):  # 对于每个Port的单例模式装饰器
 class T103API:
     def __init__(self, port="COM1", baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_EVEN,
                  stopbits=serial.STOPBITS_ONE, timeout=0.05, FCBORCU: bool = 1,
-                 ADDR: int = 1, pollinterval: int = 1):  # 1: reset CU,0: resetFCB
+                 ADDR: int = 1, pollinterval: int = 3):  # FCVORCUR: 1: reset CU,0: resetFCB
         self.port = port
+        self.ADDR = ADDR
         self.m_ASDU = T103ASDU.T103ASDU(port=port, baudrate=baudrate, bytesize=bytesize, parity=parity,
                                         stopbits=stopbits,
                                         timeout=timeout)
         self.FCB = 0
         self.lock = threading.RLock()
         self.stopevent = threading.Event()
+        self.timeSync(ASDUADDR=self.ADDR, response=False)
         if int(FCBORCU):
-            msg = self.resetCU(ADDR)
+            msg = self.resetCU()
         else:
-            msg = self.resetFCB(ADDR)
+            msg = self.resetFCB()
         print(msg)
 
-        self.startCyclicPoll(interval=pollinterval, ADDR=ADDR)
+        self.thread1 = threading.Thread(target=self.CyclicPoll, kwargs={"interval": pollinterval}, daemon=True)
+        self.thread1.start()
 
     def __del__(self):
         self.stopevent.set()
@@ -60,33 +63,28 @@ class T103API:
 
     def send3times(self, sendfunc, **args):  # all send commands should go through this function!!!
         for i in range(1, 4):
-            sendfunc(**args)
+            sendfunc(**args, ADDR=self.ADDR)
             received = self.m_ASDU.m_lpdu.m_serial.receive()
             if len(received) != 0:
                 self.FCB = not self.FCB
                 return received
         raise Exception("receive time out")
 
-    def startCyclicPoll(self, interval, ADDR):
-        self.thread1 = threading.Thread(target=self.CyclicPoll,
-                                        kwargs={"interval": interval, "ADDR": ADDR}, daemon=True)
-        self.thread1.start()
-
-    def CyclicPoll(self, interval, ADDR):
+    def CyclicPoll(self, interval):
         while True:
             if self.stopevent.is_set():
                 self.stopevent.clear()
                 break
             self.lock.acquire()
-            self.requestClass2Data(ADDR=ADDR)
+            self.requestClass2Data()
             self.lock.release()
             time.sleep(interval)
 
-    def repeatRequestClass1Data(self, ADDR: int):  # 连续请求一级数据
+    def repeatRequestClass1Data(self):  # 连续请求一级数据
         self.lock.acquire()
         receivebuffer = []
         while True:
-            dict1 = self.requestClass1Data(ADDR)
+            dict1 = self.requestClass1Data()
             receivebuffer.append(dict1)
             if dict1 is None:
                 continue
@@ -95,49 +93,49 @@ class T103API:
         self.lock.release()
         return receivebuffer
 
-    def requestClass1Data(self, ADDR: int):  # 单次请求一级数据
+    def requestClass1Data(self):  # 单次请求一级数据
         self.lock.acquire()
-        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=self.FCB, FCV=1, fcode=10, ADDR=ADDR)
+        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=self.FCB, FCV=1, fcode=10)
         dict1 = T103ASDU.interpret(received)
         if dict1 is None:
             # raise Exception("cannot interpret this frame")
             self.lock.release()
             return
-        if dict1['ADDR'] != ADDR:
+        if dict1['ADDR'] != self.ADDR:
             raise Exception("sent ADDR is not consistent with received ADDR")
         self.lock.release()
         return dict1
 
-    def requestClass2Data(self, ADDR: int):  # 单次请求二级数据/遥测
+    def requestClass2Data(self):  # 单次请求二级数据/遥测
         self.lock.acquire()
-        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=self.FCB, FCV=1, fcode=11, ADDR=ADDR)
+        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=self.FCB, FCV=1, fcode=11)
         dict1 = T103ASDU.interpret(received)
-        if dict1['ADDR'] != ADDR:
+        if dict1['ADDR'] != self.ADDR:
             raise Exception("sent ADDR is not consistent with received ADDR")
         self.lock.release()
         return dict1
 
-    def repeatRequestClass2Data(self, ADDR: int, requestc1: bool = False,
+    def repeatRequestClass2Data(self, requestc1: bool = False,
                                 waitTime: float = 1):  # 请求二级数据/遥测 requestc1为True时：若需要，则继续请求一级数据
         self.lock.acquire()
         receivebuffer = []
         time.sleep(waitTime)
         while True:
-            received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=self.FCB, FCV=1, fcode=11, ADDR=ADDR)
+            received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=self.FCB, FCV=1, fcode=11)
             dict1 = T103ASDU.interpret(received)
-            if dict1['ADDR'] != ADDR:
+            if dict1['ADDR'] != self.ADDR:
                 raise Exception("sent ADDR is not consistent with received ADDR")
             if dict1['fcode'] == 9:
                 break
             receivebuffer.append(dict1)
         if dict1['ACD'] == 1 and requestc1:
-            receivebuffer += self.repeatRequestClass1Data(ADDR)
+            receivebuffer += self.repeatRequestClass1Data()
         self.lock.release()
         return receivebuffer
 
-    def measurement(self, ADDR: int, requestc1: bool = False,
+    def measurement(self, requestc1: bool = False,
                     waitTime: float = 2):  # 遥测快捷方式,返回一个以(FUN,INF）为key的字典，便于索引, value仍然为字典
-        receivebuffer = self.repeatRequestClass2Data(ADDR=ADDR, requestc1=requestc1, waitTime=waitTime)
+        receivebuffer = self.repeatRequestClass2Data(requestc1=requestc1, waitTime=waitTime)
         dict1 = {}
         for point in receivebuffer:
             details = point.copy()
@@ -145,31 +143,37 @@ class T103API:
             dict1[(point['FUN'], point['INF'])] = details
         return dict1
 
-    def generalCommand(self, ADDR: int, ASDUADDR: int, FUN: int, INF: int, DCO: int, RII=0, response=True):  # 遥控
+    def generalCommand(self, ASDUADDR: int, FUN: int, INF: int, DCO: int, RII=0, response=True):  # 遥控
         self.lock.acquire()
-        received = self.send3times(self.m_ASDU.sendASDU14, FCB=self.FCB, ADDR=ADDR, ASDUADDR=ASDUADDR, FUN=FUN, INF=INF,
+        if not response:
+            self.m_ASDU.sendASDU14(FCB=self.FCB, ADDR=self.ADDR, ASDUADDR=ASDUADDR, FUN=FUN, INF=INF,
+                                   DCO=DCO, RII=RII, response=response)
+            self.FCB = not self.FCB
+            self.lock.release()
+            return
+        received = self.send3times(self.m_ASDU.sendASDU14, FCB=self.FCB, ASDUADDR=ASDUADDR, FUN=FUN, INF=INF,
                                    DCO=DCO, RII=RII, response=response)
         dict1 = T103ASDU.interpret(received)
         receivebuffer = []
         if dict1 is None:
             self.lock.release()
             return
-        if dict1['ADDR'] != ADDR:
+        if dict1['ADDR'] != self.ADDR:
             raise Exception("sent ADDR is not consistent with received ADDR")
-        receivebuffer += self.repeatRequestClass1Data(ADDR)
+        receivebuffer += self.repeatRequestClass1Data()
         self.lock.release()
         return receivebuffer
 
-    def GI(self, ADDR, ASDUADDR, SCN):  # 总召/遥信  返回3个list，可能有空
+    def GI(self, ASDUADDR, SCN):  # 总召/遥信  返回3个list，可能有空
         self.lock.acquire()
-        received = self.send3times(self.m_ASDU.sendASDU7, FCB=self.FCB, ADDR=ADDR, ASDUADDR=ASDUADDR, SCN=SCN)
+        received = self.send3times(self.m_ASDU.sendASDU7, FCB=self.FCB, ASDUADDR=ASDUADDR, SCN=SCN)
         dict1 = T103ASDU.interpret(received)
         errorbuffer = []
         expectedreceivebuffer = []
         unexpectedreceivebuffer = []
-        if dict1['ADDR'] != ADDR:
+        if dict1['ADDR'] != self.ADDR:
             raise Exception("sent ADDR is not consistent with received ADDR")
-        gotbuffer = self.repeatRequestClass1Data(ADDR)
+        gotbuffer = self.repeatRequestClass1Data()
         for i in gotbuffer:
             if i is None:
                 expectedreceivebuffer.append(i)
@@ -185,50 +189,56 @@ class T103API:
         self.lock.release()
         return expectedreceivebuffer, unexpectedreceivebuffer, errorbuffer
 
-    def timeSync(self, ADDR, ASDUADDR, response=True):  # 对时
+    def timeSync(self, ASDUADDR, response=True):  # 对时
         self.lock.acquire()
-        received = self.send3times(self.m_ASDU.sendASDU6, FCB=self.FCB, ADDR=ADDR, ASDUADDR=ASDUADDR, response=response)
+        if not response:
+            self.m_ASDU.sendASDU6(FCB=self.FCB, ADDR=self.ADDR, ASDUADDR=ASDUADDR, response=response)
+            self.FCB = not self.FCB
+            self.lock.release()
+            return
+        received = self.send3times(self.m_ASDU.sendASDU6, FCB=self.FCB, ASDUADDR=ASDUADDR, response=response)
         dict1 = T103ASDU.interpret(received)
         receivebuffer = []
         if dict1 is None:
             self.lock.release()
             return
-        if dict1['ADDR'] != ADDR:
+        if dict1['ADDR'] != self.ADDR:
             raise Exception("sent ADDR is not consistent with received ADDR")
         if dict1['ACD'] == 1:
-            receivebuffer += self.repeatRequestClass1Data(ADDR)
+            receivebuffer += self.repeatRequestClass1Data()
         self.lock.release()
         return receivebuffer
 
-    def resetFCB(self, ADDR):  # reset frame count bit复位帧计数位
+    def resetFCB(self):  # reset frame count bit复位帧计数位
         self.lock.acquire()
-        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=0, FCV=0, fcode=7, ADDR=ADDR)
+        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=0, FCV=0, fcode=7)
         dict1 = T103ASDU.interpret(received)
         if dict1['fcode'] != 0:
             raise Exception('protection equipment did not confirm')
         self.FCB = 1  # 从站的FCB被设为0，所以下一次主站发送的message的FCB必须是1
-        receivebuffer = self.requestClass1Data(ADDR)
+        receivebuffer = self.requestClass1Data()
         self.lock.release()
         return receivebuffer
 
-    def resetCU(self, ADDR):  # reset communication unit复位通信单元
+    def resetCU(self):  # reset communication unit复位通信单元
         self.lock.acquire()
-        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=0, FCV=0, fcode=0, ADDR=ADDR)
+        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=0, FCV=0, fcode=0)
         dict1 = T103ASDU.interpret(received)
         if dict1['fcode'] != 0:
             raise Exception('protection equipment did not confirm')
         self.FCB = 1  # 从站的FCB被设为0，所以下一次主站发送的message的FCB必须是1
-        receivebuffer = self.requestClass1Data(ADDR)
+        receivebuffer = self.requestClass1Data()
         self.lock.release()
         return receivebuffer
 
-    def requestLinkState(self, ADDR):
+    def requestLinkState(self):
         self.lock.acquire()
-        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=0, FCV=0, fcode=9, ADDR=ADDR)
+        received = self.send3times(self.m_ASDU.m_lpdu.fixed, FCB=0, FCV=0, fcode=9)
         dict1 = T103ASDU.interpret(received)
         if dict1['fcode'] != 11:
             raise Exception('protection equipment did not respond to request')
         self.lock.release()
+        return [dict1]
 
     def printLog(self, filename):
         self.lock.acquire()
@@ -271,21 +281,21 @@ def demo():
 
         num = int(input("Type your input:\n"))
         if num == 0:
-            print(h.requestClass1Data(ADDR=1))
+            print(h.requestClass1Data())
         elif num == 1:
-            list1 = h.repeatRequestClass1Data(ADDR=1)
+            list1 = h.repeatRequestClass1Data()
             for i in list1:
                 print(i)
         elif num == 2:
-            list1 = h.repeatRequestClass2Data(ADDR=1)
+            list1 = h.repeatRequestClass2Data()
             for i in list1:
                 print(i)
         elif num == 6:
-            list1 = h.timeSync(ADDR=1, ASDUADDR=1, )
+            list1 = h.timeSync(ASDUADDR=1)
             for i in list1:
                 print(i)
         elif num == 7:
-            list1, unexpectedlist, errorlist = h.GI(ADDR=1, ASDUADDR=1, SCN=4)
+            list1, unexpectedlist, errorlist = h.GI(ASDUADDR=1, SCN=4)
             for i in list1:
                 print(i)
             print('Spontaneous:', len(unexpectedlist))
@@ -295,20 +305,20 @@ def demo():
             for i in errorlist:
                 print(i)
         elif num == 8:
-            list1 = h.resetFCB(ADDR=1)
+            list1 = h.resetFCB()
             print(list1)
         elif num == 9:
-            list1 = h.resetCU(ADDR=1)
+            list1 = h.resetCU()
             print(list1)
         elif num == 10:
-            list1 = h.requestLinkState(ADDR=1)
+            list1 = h.requestLinkState()
             print(list1)
         elif num == 11:
-            dict1 = h.measurement(ADDR=1)
+            dict1 = h.measurement()
             for key in dict1:
                 print(key, dict1[key])
         elif num == 20:
-            list1 = h.generalCommand(ADDR=1, ASDUADDR=1, FUN=192, INF=19, DCO=2, RII=3)
+            list1 = h.generalCommand(ASDUADDR=1, FUN=192, INF=19, DCO=2, RII=3)
             for i in list1:
                 print(i)
         elif num == 100:

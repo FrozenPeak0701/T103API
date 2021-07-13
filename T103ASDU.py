@@ -122,7 +122,7 @@ def receiveASDU1(ASDU: list[bytes]) -> dict:  # time-tagged message
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
-    if dict1['VSQ'] != 0x81 or len(INFO) != 6 or dict1['COT'] not in (1, 7, 9):
+    if dict1['VSQ'] != 0x81 or len(INFO) != 6:
         raise Exception("illegal ASDU1 format")
     DPI = INFO[0]
     SEC = (INFO[1] + INFO[2] * 256) / 1000
@@ -141,7 +141,7 @@ def receiveASDU2(ASDU: list[bytes]) -> dict:  # time tagged message with relativ
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
-    if dict1['VSQ'] != 0x81 or dict1['COT'] not in (1, 7, 9) or len(INFO) != 10:
+    if dict1['VSQ'] != 0x81 or len(INFO) != 10:
         raise Exception("illegal ASDU2 format")
     DPI = INFO[0]
     RET = (INFO[1] + INFO[2] * 256) / 1000
@@ -165,7 +165,7 @@ def receiveASDU3(ASDU: list[bytes]) -> dict:  # measurands 1
     INFO = dict1['INFO']
     del dict1['INFO']
     VSQ = dict1['VSQ']
-    if dict1['COT'] not in (2, 7) or len(INFO) != 2 * VSQ:
+    if len(INFO) != 2 * VSQ:
         raise Exception("illegal ASDU3/9 format")
     Measurements = []
     for i in range(0, VSQ):
@@ -184,7 +184,7 @@ def receiveASDU4(ASDU: list[bytes]) -> dict:  # time-tagged measurands with rela
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
-    if dict1['VSQ'] != 0x81 or dict1['COT'] not in (1, 7, 9) or len(INFO) != 12:
+    if dict1['VSQ'] != 0x81 or len(INFO) != 12:
         raise Exception("illegal ASDU4 format")
     # F = INFO[0] / (2 ** 23) + INFO[1] / (2 ** 15) + (INFO[2] % 128) / (2 ** 7)
     # S = INFO[3] >> 7
@@ -210,7 +210,7 @@ def receiveASDU5(ASDU: list[bytes]) -> dict:  # identification message
     INFO = dict1['INFO']
     del dict1['INFO']
     COL = INFO[0]
-    if dict1['VSQ'] != 0x81 or dict1['COT'] not in (3, 4, 5) or len(INFO) != 13 or dict1['INF'] not in (
+    if dict1['VSQ'] != 0x81 or len(INFO) != 13 or dict1['INF'] not in (
             2, 3, 4) or COL not in (2, 3):
         raise Exception("illegal ASDU5 format")
     ASCII = INFO[1:9].decode("utf8")
@@ -224,7 +224,7 @@ def receiveASDU6(ASDU: list[bytes]) -> dict:  # time synchronization
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
-    if dict1['VSQ'] != 0x81 or dict1['COT'] != 8 or len(INFO) != 7 or dict1['FUN'] != 255 or dict1['INF'] != 0:
+    if dict1['VSQ'] != 0x81 or len(INFO) != 7 or dict1['FUN'] != 255 or dict1['INF'] != 0:
         raise Exception("illegal ASDU6 format")
 
     SEC = (INFO[0] + INFO[1] * 256) / 1000
@@ -247,7 +247,7 @@ def receiveASDU8(ASDU: list[bytes]) -> dict:  # termination of general interroga
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
-    if dict1['VSQ'] != 0x81 or dict1['COT'] != 0x0a or len(INFO) != 1 or dict1['FUN'] != 0xff or dict1['INF'] != 0x00:
+    if dict1['VSQ'] != 0x81 or len(INFO) != 1 or dict1['FUN'] != 0xff or dict1['INF'] != 0x00:
         raise Exception("illegal ASDU8 format")
     SIN = INFO[0]
     dict1['SIN'] = SIN
@@ -298,7 +298,7 @@ def receiveASDUCD(ASDU: list[bytes]) -> dict:
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
-    if dict1['VSQ'] != 0x81 or dict1['COT'] != 1 or len(INFO) != 8:
+    if dict1['VSQ'] != 0x81 or len(INFO) != 8:
         raise Exception("illegal ASDUCD format")
     CR = INFO[0] + (INFO[1] << 8) + (INFO[2] << 16) + ((INFO[3] & 0b11111) << 24)
     if INFO[3] >> 4 & 1 == 1:
