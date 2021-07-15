@@ -65,7 +65,7 @@ class T103ASDU:
         pass
 
 
-def interpret(raw: list[bytes]) -> dict:
+def interpret(raw) -> dict:
     dict1 = T103LPDU.deformat(raw)
     if dict1['format'] == 'fixed':
         return dict1
@@ -107,7 +107,7 @@ def interpret(raw: list[bytes]) -> dict:
         # raise Exception("type unsupported")
 
 
-def deformatASDU(ASDU: list[bytes]) -> dict:
+def deformatASDU(ASDU) -> dict:
     TYPE = ASDU[0]
     VSQ = ASDU[1]
     COT = ASDU[2]
@@ -118,7 +118,7 @@ def deformatASDU(ASDU: list[bytes]) -> dict:
     return {'TYPE': TYPE, 'VSQ': VSQ, 'COT': COT, 'ASDUADDR': ASDUADDR, 'FUN': FUN, 'INF': INF, 'INFO': INFO}
 
 
-def receiveASDU1(ASDU: list[bytes]) -> dict:  # time-tagged message
+def receiveASDU1(ASDU) -> dict:  # time-tagged message
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
@@ -137,7 +137,7 @@ def receiveASDU1(ASDU: list[bytes]) -> dict:  # time-tagged message
     return dict1
 
 
-def receiveASDU2(ASDU: list[bytes]) -> dict:  # time tagged message with relative time
+def receiveASDU2(ASDU) -> dict:  # time tagged message with relative time
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
@@ -160,7 +160,7 @@ def receiveASDU2(ASDU: list[bytes]) -> dict:  # time tagged message with relativ
     return dict1
 
 
-def receiveASDU3(ASDU: list[bytes]) -> dict:  # measurands 1
+def receiveASDU3(ASDU) -> dict:  # measurands 1
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
@@ -180,7 +180,7 @@ def receiveASDU3(ASDU: list[bytes]) -> dict:  # measurands 1
     return dict1
 
 
-def receiveASDU4(ASDU: list[bytes]) -> dict:  # time-tagged measurands with relative timme
+def receiveASDU4(ASDU) -> dict:  # time-tagged measurands with relative timme
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
@@ -205,7 +205,7 @@ def receiveASDU4(ASDU: list[bytes]) -> dict:  # time-tagged measurands with rela
     return dict1
 
 
-def receiveASDU5(ASDU: list[bytes]) -> dict:  # identification message
+def receiveASDU5(ASDU) -> dict:  # identification message
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
@@ -220,7 +220,7 @@ def receiveASDU5(ASDU: list[bytes]) -> dict:  # identification message
     return dict1
 
 
-def receiveASDU6(ASDU: list[bytes]) -> dict:  # time synchronization
+def receiveASDU6(ASDU) -> dict:  # time synchronization
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
@@ -243,7 +243,7 @@ def receiveASDU6(ASDU: list[bytes]) -> dict:  # time synchronization
     return dict1
 
 
-def receiveASDU8(ASDU: list[bytes]) -> dict:  # termination of general interrogation
+def receiveASDU8(ASDU) -> dict:  # termination of general interrogation
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']
@@ -254,47 +254,47 @@ def receiveASDU8(ASDU: list[bytes]) -> dict:  # termination of general interroga
     return dict1
 
 
-def receiveASDU9(ASDU: list[bytes]) -> dict:  # measurands 2
+def receiveASDU9(ASDU) -> dict:  # measurands 2
     return receiveASDU3(ASDU)
 
 
-def receiveASDU0A(ASDU: list[bytes]) -> dict:  # generic data
+def receiveASDU0A(ASDU) -> dict:  # generic data
     pass
 
 
-def receiveASDU0B(ASDU: list[bytes]) -> dict:  # generic identification
+def receiveASDU0B(ASDU) -> dict:  # generic identification
     pass
 
 
-def receiveASDU17(ASDU: list[bytes]) -> dict:  # list of recorded disturbances
+def receiveASDU17(ASDU) -> dict:  # list of recorded disturbances
     pass
 
 
-def receiveASDU1A(ASDU: list[bytes]) -> dict:  # ready for transmission of disturbance data
+def receiveASDU1A(ASDU) -> dict:  # ready for transmission of disturbance data
     pass
 
 
-def receiveASDU1B(ASDU: list[bytes]) -> dict:  # ready for transmission of a channel
+def receiveASDU1B(ASDU) -> dict:  # ready for transmission of a channel
     pass
 
 
-def receiveASDU1C(ASDU: list[bytes]) -> dict:  # ready for transmission of tags
+def receiveASDU1C(ASDU) -> dict:  # ready for transmission of tags
     pass
 
 
-def receiveASDU1D(ASDU: list[bytes]) -> dict:  # transmission of tags
+def receiveASDU1D(ASDU) -> dict:  # transmission of tags
     pass
 
 
-def receiveASDU1E(ASDU: list[bytes]) -> dict:  # transmission of disturbance values
+def receiveASDU1E(ASDU) -> dict:  # transmission of disturbance values
     pass
 
 
-def receiveASDU1F(ASDU: list[bytes]) -> dict:  # end of transmission
+def receiveASDU1F(ASDU) -> dict:  # end of transmission
     pass
 
 
-def receiveASDUCD(ASDU: list[bytes]) -> dict:
+def receiveASDUCD(ASDU) -> dict:
     dict1 = deformatASDU(ASDU)
     INFO = dict1['INFO']
     del dict1['INFO']

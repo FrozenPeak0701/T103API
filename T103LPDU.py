@@ -30,7 +30,7 @@ class T103LPDU:
         self.m_serial.send(pdubuf, len(pdubuf))
         # print(self.socket.read(1024).hex(" "))
 
-    def variable(self, FCB: int, FCV: int, fcode: int, ADDR: int, ASDU: list[bytes]):
+    def variable(self, FCB: int, FCV: int, fcode: int, ADDR: int, ASDU):
         CODE = self.enCODE(FCB, FCV, fcode)
         pdubuf = bytes([0x68, 2 + len(ASDU), 2 + len(ASDU), 0x68, CODE, ADDR]) + ASDU
         CS = (sum(ASDU) + CODE + ADDR) % 256
@@ -38,7 +38,7 @@ class T103LPDU:
         self.m_serial.send(pdubuf, len(pdubuf))
 
 
-def deformat(raw: list[bytes]) -> dict:
+def deformat(raw) -> dict:
     if len(raw) > 5:
         dict1 = {'format': 'variable'}
         dict1.update(devariable(raw))
@@ -51,7 +51,7 @@ def deformat(raw: list[bytes]) -> dict:
         raise Exception("illegal frame length")
 
 
-def defixed(raw: list[bytes]) -> dict:
+def defixed(raw) -> dict:
     CS = (raw[1] + raw[2]) % 256
     CODE = int(raw[1])
     ADDR = int(raw[2])
@@ -72,7 +72,7 @@ def defixed(raw: list[bytes]) -> dict:
     return {'CODE': CODE, 'ACD': ACD, 'DFC': DFC, 'fcode': fcode, 'ADDR': ADDR}
 
 
-def devariable(raw: list[bytes]) -> dict:
+def devariable(raw) -> dict:
     ASDU = raw[6:][:-2]
     CODE = raw[4]
     ADDR = raw[5]

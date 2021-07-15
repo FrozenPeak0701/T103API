@@ -9,7 +9,7 @@ class smartPort:
         self.log = []
 
     def send(self, databuf, length):
-        print("Sent: ", databuf.hex(" "))  # this is temporary, or not...
+        # print("Sent: ", databuf.hex(" "))  # this is temporary, or not...
         self.log.append("Sent: " + databuf.hex(" "))
         if (self.m_serialport.write(databuf) != length):
             print("Send Error")
@@ -28,7 +28,7 @@ class smartPort:
                     if self.m_serialport.inWaiting() == 0:
                         break
 
-        print("Received: ", received.hex(" "))  # this is temporary, or not...
+        # print("Received: ", received.hex(" "))  # this is temporary, or not...
         self.log.append("Received: " + received.hex(" "))
 
         return received

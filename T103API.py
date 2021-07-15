@@ -22,7 +22,9 @@ def singleton(cls):  # 对于每个Port的单例模式装饰器
 
     def inner(*args, **kwargs):
         for i in _instance:
-            if i.port == args[0] or i.port == kwargs["port"]:
+            if len(args) > 0 and i.port == args[0]:
+                return i
+            if i.port == kwargs["port"]:
                 return i
         _instance.append(cls(*args, **kwargs))
         return _instance[-1]
@@ -43,12 +45,12 @@ class T103API:
         self.FCB = 0
         self.lock = threading.RLock()
         self.stopevent = threading.Event()
-        self.timeSync(ASDUADDR=self.ADDR, response=False)
+        # self.timeSync(ASDUADDR=self.ADDR, response=False)
         if int(FCBORCU):
             msg = self.resetCU()
         else:
             msg = self.resetFCB()
-        print(msg)
+        # print(msg)
 
         self.thread1 = threading.Thread(target=self.CyclicPoll, kwargs={"interval": pollinterval}, daemon=True)
         self.thread1.start()
@@ -135,12 +137,13 @@ class T103API:
 
     def measurement(self, requestc1: bool = False,
                     waitTime: float = 2):  # 遥测快捷方式,返回一个以(FUN,INF）为key的字典，便于索引, value仍然为字典
-        receivebuffer = self.repeatRequestClass2Data(requestc1=requestc1, waitTime=waitTime)
         dict1 = {}
-        for point in receivebuffer:
-            details = point.copy()
-            del details['FUN'], details['INF']
-            dict1[(point['FUN'], point['INF'])] = details
+        for i in range(0, 2):
+            receivebuffer = self.repeatRequestClass2Data(requestc1=requestc1, waitTime=waitTime)
+            for point in receivebuffer:
+                details = point.copy()
+                del details['FUN'], details['INF']
+                dict1[(point['FUN'], point['INF'])] = details
         return dict1
 
     def generalCommand(self, ASDUADDR: int, FUN: int, INF: int, DCO: int, RII=0, response=True):  # 遥控
