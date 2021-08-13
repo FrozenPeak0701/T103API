@@ -1,14 +1,17 @@
-import smartPort
-import Port
+# link-protocol data unit layer api intended for t103_api use
+# original author: Zeyu Ma
+
+import smart_port
+# import Port
 import serial, threading, time
 
 
 class T103LPDU:
     def __init__(self, port="COM1", baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_EVEN,
                  stopbits=serial.STOPBITS_ONE, timeout=0.1):
-        self.m_serial = smartPort.smartPort(port=port, baudrate=baudrate, bytesize=bytesize, parity=parity,
-                                            stopbits=stopbits,
-                                            timeout=timeout)
+        self.m_serial = smart_port.smartPort(port=port, baudrate=baudrate, bytesize=bytesize, parity=parity,
+                                             stopbits=stopbits,
+                                             timeout=timeout)
 
     # def __del__(self):
     # del self.m_serial # seems to work without it, no idea why

@@ -1,13 +1,16 @@
-import T103LPDU
+# application datan unit layer api intended for t103_api use
+# original author: Zeyu Ma
+
+import t103_lpdu
 import serial, threading, time, datetime, struct
 
 
 class T103ASDU:
     def __init__(self, port="COM1", baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_EVEN,
                  stopbits=serial.STOPBITS_ONE, timeout=0.1):
-        self.m_lpdu = T103LPDU.T103LPDU(port=port, baudrate=baudrate, bytesize=bytesize, parity=parity,
-                                        stopbits=stopbits,
-                                        timeout=timeout)
+        self.m_lpdu = t103_lpdu.T103LPDU(port=port, baudrate=baudrate, bytesize=bytesize, parity=parity,
+                                         stopbits=stopbits,
+                                         timeout=timeout)
 
     def __del__(self):
         del self.m_lpdu
@@ -66,7 +69,7 @@ class T103ASDU:
 
 
 def interpret(raw) -> dict:
-    dict1 = T103LPDU.deformat(raw)
+    dict1 = t103_lpdu.deformat(raw)
     if dict1['format'] == 'fixed':
         return dict1
     ASDU = dict1['ASDU']
@@ -167,7 +170,7 @@ def receiveASDU3(ASDU) -> dict:  # measurands 1
     VSQ = dict1['VSQ']
     if len(INFO) != 2 * VSQ:
         raise Exception("illegal ASDU3/9 format")
-    Measurements = []
+    Measurements = {}
     for i in range(0, VSQ):
         data = (INFO[1 + 2 * i] << 5) + (INFO[2 * i] >> 3)
         if data >> 12 & 1 == 1:
@@ -175,7 +178,7 @@ def receiveASDU3(ASDU) -> dict:  # measurands 1
         OV = INFO[2 * i] & 1
         ER = INFO[2 * i] >> 1 & 1
         msdict = {'Measurement': data, 'OV': OV, 'ER': ER}
-        Measurements.append(msdict)
+        Measurements[i+1]=(msdict)
     dict1['Measurements'] = Measurements
     return dict1
 
